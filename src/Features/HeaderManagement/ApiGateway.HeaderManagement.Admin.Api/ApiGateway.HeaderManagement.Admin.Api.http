@@ -1,0 +1,6 @@
+@ApiGateway.HeaderManagement.Admin.Api_HostAddress = http://localhost:5207
+
+GET {{ApiGateway.HeaderManagement.Admin.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

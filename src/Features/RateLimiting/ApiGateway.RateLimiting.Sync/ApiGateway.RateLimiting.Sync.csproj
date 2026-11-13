@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ApiGateway.RateLimiting.Sync-7d7cf7d3-afc9-4b6a-97fd-32779f3c7400</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.15" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="StackExchange.Redis" Version="3.4.35" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\ApiGateway.Shared.Domain\ApiGateway.Shared.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ApiGateway.Shared.Contracts\ApiGateway.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\ApiGateway.RateLimiting.Core\ApiGateway.RateLimiting.Core.csproj" />
+    <ProjectReference Include="..\ApiGateway.RateLimiting.Persistence\ApiGateway.RateLimiting.Persistence.csproj" />
+  </ItemGroup>
+</Project>

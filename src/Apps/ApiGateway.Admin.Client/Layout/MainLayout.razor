@@ -1,0 +1,62 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <AppBar IsDarkMode="_isDarkMode" OnMenuClick="ToggleDrawer" OnToggleTheme="ToggleTheme" />
+
+    <Navbar Open="_drawerOpen" OpenChanged="OnDrawerOpenChanged" />
+
+        
+    <MudMainContent Class="main-content">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    private readonly MudTheme _theme = new()
+    {
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[] { "Vazirmatn", "Helvetica", "Arial", "sans-serif" }
+            }
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var stored = await JS.InvokeAsync<string>("localStorage.getItem", "ui.theme.dark");
+        if (bool.TryParse(stored, out var value))
+        {
+            _isDarkMode = value;
+        }
+    }
+
+    private Task ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+        return Task.CompletedTask;
+    }
+
+    private Task OnDrawerOpenChanged(bool value)
+    {
+        _drawerOpen = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+        await JS.InvokeVoidAsync("localStorage.setItem", "ui.theme.dark", _isDarkMode.ToString().ToLowerInvariant());
+    }
+}

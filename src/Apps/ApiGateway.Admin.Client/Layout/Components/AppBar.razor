@@ -1,0 +1,25 @@
+﻿<MudAppBar Elevation="1" Dense="true">
+    <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                   Color="Color.Inherit"
+                   Edge="Edge.Start"
+                   OnClick="OnMenuClick" />
+    <MudText Typo="Typo.h6">API Gateway Admin Panel</MudText>
+    <MudSpacer />
+    <MudTooltip Text="@(IsDarkMode ? "Light mode" : "Dark mode")">
+        <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit"
+                       Edge="Edge.End"
+                       OnClick="OnToggleTheme" />
+    </MudTooltip>
+</MudAppBar>
+
+@code {
+    [Parameter]
+    public bool IsDarkMode { get; set; }
+
+    [Parameter]
+    public EventCallback OnMenuClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggleTheme { get; set; }
+}

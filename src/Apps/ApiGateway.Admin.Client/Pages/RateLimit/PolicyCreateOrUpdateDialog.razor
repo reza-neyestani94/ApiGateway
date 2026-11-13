@@ -1,0 +1,362 @@
+﻿@using ApiGateway.Admin.Client.Models.RateLimit
+@using ApiGateway.Admin.Client.Services
+@using ApiGateway.Shared.Domain.Enums
+@using MudBlazor
+@inject RateLimitPolicyApiClient ApiClient
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrWhiteSpace(_serverError))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mb-4">
+                @_serverError
+            </MudAlert>
+        }
+
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Policy Name"
+                                  @bind-Value="Model.PolicyName"
+                                  Required="true"
+                                  Immediate="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Service Name"
+                                  @bind-Value="Model.ServiceName"
+                                  Required="true"
+                                  Immediate="true"
+                                  Disabled="IsEditMode" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="byte"
+                               Label="HTTP Method"
+                               Value="Model.HttpMethodType"
+                               ValueChanged="OnHttpMethodChanged"
+                               ValueExpression="() => Model.HttpMethodType"
+                               Required="true">
+                        @foreach (var item in HttpMethods)
+                        {
+                            <MudSelectItem T="byte" Value="@item.Value">@item.Text</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Endpoint Pattern"
+                                  @bind-Value="Model.EndpointPattern"
+                                  Required="true"
+                                  Immediate="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="byte"
+                               Label="Subject Type"
+                               Value="Model.SubjectType"
+                               ValueChanged="OnSubjectTypeChanged"
+                               ValueExpression="() => Model.SubjectType"
+                               Required="true"
+                               Disabled="IsEditMode">
+                        @foreach (var item in SubjectTypes)
+                        {
+                            <MudSelectItem T="byte" Value="@item.Value">@item.Text</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Subject Key"
+                                  @bind-Value="Model.SubjectKey"
+                                  Required="true"
+                                  Immediate="true"
+                                  Disabled="IsEditMode || Model.SubjectType == (byte)SubjectType.Global"
+                                  HelperText="@GetSubjectKeyHelperText()" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     Label="Limit Count"
+                                     @bind-Value="Model.LimitCount"
+                                     Required="true"
+                                     Min="1" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     Label="Window Size"
+                                     @bind-Value="Model.WindowSize"
+                                     Required="true"
+                                     Min="1" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="byte"
+                               Label="Window Unit"
+                               Value="Model.WindowUnit"
+                               ValueChanged="OnWindowUnitChanged"
+                               ValueExpression="() => Model.WindowUnit"
+                               Required="true">
+                        @foreach (var item in WindowUnits)
+                        {
+                            <MudSelectItem T="byte" Value="@item.Value">@item.Text</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="byte"
+                               Label="Algorithm"
+                               Value="Model.AlgorithmType"
+                               ValueChanged="OnAlgorithmChanged"
+                               ValueExpression="() => Model.AlgorithmType"
+                               Required="true">
+                        @foreach (var item in Algorithms)
+                        {
+                            <MudSelectItem T="byte" Value="@item.Value">@item.Text</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     Label="Priority"
+                                     @bind-Value="Model.Priority" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool"
+                               Label="State:"
+                               Color="Color.Secondary"
+                               @bind-Value="Model.IsActive" >@(Model.IsActive ==true ?" Active":" Inactive")</MudSwitch>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Label="Effective From"
+                                   @bind-Date="Model.EffectiveFrom" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Label="Effective To"
+                                   @bind-Date="Model.EffectiveTo" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Label="Notes"
+                                  @bind-Value="Model.Notes"
+                                  Lines="4"
+                                  Immediate="true" />
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   OnClick="Cancel"
+                   Disabled="_isSubmitting">
+            Cancel
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSubmitting">
+            @if (_isSubmitting)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
+            }
+            @(IsEditMode ? "Update" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public RateLimitPolicyFormModel Model { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+
+    private MudForm? _form;
+    private bool _isSubmitting;
+    private string? _serverError;
+
+    private List<SelectItem> HttpMethods { get; } =
+    [
+        new((byte)HttpMethodType.All, "All"),
+        new((byte)HttpMethodType.Get, "GET"),
+        new((byte)HttpMethodType.Post, "POST"),
+        new((byte)HttpMethodType.Put, "PUT"),
+        new((byte)HttpMethodType.Delete, "DELETE"),
+        new((byte)HttpMethodType.Patch, "PATCH"),
+        new((byte)HttpMethodType.Head, "HEAD"),
+        new((byte)HttpMethodType.Options, "OPTIONS")
+    ];
+
+    private List<SelectItem> SubjectTypes { get; } =
+    [
+        new((byte)SubjectType.Global, "Global"),
+        new((byte)SubjectType.User, "User"),
+        new((byte)SubjectType.Role, "Role"),
+        new((byte)SubjectType.ClientId, "ClientId")
+    ];
+
+    private List<SelectItem> WindowUnits { get; } =
+    [
+        new((byte)WindowUnit.Second, "Second"),
+        new((byte)WindowUnit.Minute, "Minute"),
+        new((byte)WindowUnit.Hour, "Hour"),
+        new((byte)WindowUnit.Day, "Day"),
+        new((byte)WindowUnit.Month, "Month")
+    ];
+
+    private List<SelectItem> Algorithms { get; } =
+    [
+        new((byte)AlgorithmType.FixedWindow, "Fixed Window"),
+        new((byte)AlgorithmType.SlidingWindow, "Sliding Window")
+    ];
+
+    protected override void OnInitialized()
+    {
+        if (Model.SubjectType == (byte)SubjectType.Global)
+            Model.SubjectKey = "*";
+    }
+
+    private void OnHttpMethodChanged(byte value)
+    {
+        Model.HttpMethodType = value;
+    }
+
+    private void OnWindowUnitChanged(byte value)
+    {
+        Model.WindowUnit = value;
+    }
+
+    private void OnAlgorithmChanged(byte value)
+    {
+        Model.AlgorithmType = value;
+    }
+
+    private void OnSubjectTypeChanged(byte value)
+    {
+        Model.SubjectType = value;
+
+        if (value == (byte)SubjectType.Global)
+            Model.SubjectKey = "*";
+        else if (Model.SubjectKey == "*")
+            Model.SubjectKey = string.Empty;
+    }
+
+    private string GetSubjectKeyHelperText()
+    {
+        return Model.SubjectType == (byte)SubjectType.Global
+            ? "For Global subject type, Subject Key is fixed to '*'."
+            : "Enter a non-empty subject key. '*' is not allowed.";
+    }
+
+    private async Task SubmitAsync()
+    {
+        _serverError = null;
+
+        await _form!.Validate();
+
+        if (!_form.IsValid)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Model.PolicyName))
+        {
+            _serverError = "Policy name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.ServiceName))
+        {
+            _serverError = "Service name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.EndpointPattern))
+        {
+            _serverError = "Endpoint pattern is required.";
+            return;
+        }
+
+        if (Model.LimitCount <= 0)
+        {
+            _serverError = "Limit count must be greater than zero.";
+            return;
+        }
+
+        if (Model.WindowSize <= 0)
+        {
+            _serverError = "Window size must be greater than zero.";
+            return;
+        }
+
+        if (Model.EffectiveFrom.HasValue &&
+            Model.EffectiveTo.HasValue &&
+            Model.EffectiveTo.Value <= Model.EffectiveFrom.Value)
+        {
+            _serverError = "Effective To must be later than Effective From.";
+            return;
+        }
+
+        if (Model.SubjectType == (byte)SubjectType.Global)
+        {
+            Model.SubjectKey = "*";
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(Model.SubjectKey))
+            {
+                _serverError = "Subject key is required for non-global subject types.";
+                return;
+            }
+
+            if (Model.SubjectKey.Trim() == "*")
+            {
+                _serverError = "Subject key cannot be '*' for non-global subject types.";
+                return;
+            }
+        }
+
+        _isSubmitting = true;
+
+        try
+        {
+            if (IsEditMode)
+            {
+                var updated = await ApiClient.UpdateAsync(Model.ToUpdateRequest(), CancellationToken.None);
+                MudDialog.Close(DialogResult.Ok(updated));
+            }
+            else
+            {
+                var created = await ApiClient.CreateAsync(Model.ToCreateRequest(), CancellationToken.None);
+                MudDialog.Close(DialogResult.Ok(created));
+            }
+        }
+        catch (Exception ex)
+        {
+            _serverError = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private sealed record SelectItem(byte Value, string Text);
+}

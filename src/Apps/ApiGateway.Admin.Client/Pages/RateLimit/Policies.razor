@@ -1,0 +1,563 @@
+﻿@page "/Policies"
+@using ApiGateway.Shared.Contracts.Dtos.RateLimit
+@using ApiGateway.Shared.Domain.Enums;
+@using ApiGateway.Admin.Client.Services
+@using ApiGateway.Admin.Client.Models.RateLimit;
+@using ApiGateway.Admin.Client.Pages.RateLimit.Dialogs;
+@using ApiGateway.Shared.Contracts.Dtos.Base;
+@using MudBlazor
+@inject RateLimitPolicyApiClient ApiClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+
+<MudCard Class="mud-elevation-24">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Policies</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudTooltip Text="Add limit">
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Success" OnClick="OpenCreateDialogAsync" />
+            </MudTooltip>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+            <MudGrid Spacing="2" AlignItems="AlignItems.End">
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  @bind-Value="_filterPolicyName"
+                                  Label="Policy Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Clearable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  @bind-Value="_filterServiceName"
+                                  Label="Service Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Clearable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudTextField T="string"
+                                  @bind-Value="_filterEndpointPattern"
+                                  Label="Endpoint Pattern"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Clearable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="bool?"
+                               @bind-Value="_filterIsActive"
+                               Label="Status"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Clearable="true">
+                        <MudSelectItem T="bool?" Value="@((bool?)null)">All</MudSelectItem>
+                        <MudSelectItem T="bool?" Value="@true">Active</MudSelectItem>
+                        <MudSelectItem T="bool?" Value="@false">Inactive</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_filterCreatedAtFrom"
+                                   Label="Created From"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="yyyy-MM-dd" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_filterCreatedAtTo"
+                                   Label="Created To"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="yyyy-MM-dd" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_filterUpdatedAtFrom"
+                                   Label="Updated From"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="yyyy-MM-dd" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_filterUpdatedAtTo"
+                                   Label="Updated To"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="yyyy-MM-dd" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string"
+                               Value="_selectedSortOption"
+                               ValueChanged="OnSortByChange"
+                               Label="Sort By"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Clearable="true">
+                        @foreach (var item in _sortOptions)
+                        {
+                            <MudSelectItem T="string" Value="@item.Value">@item.Text</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="ApplySearchAsync">
+                        Search
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="ResetSearchAsync">
+                        Reset
+                    </MudButton>
+                </MudItem>
+
+            </MudGrid>
+        </MudPaper>
+
+
+        <MudDivider Class="mb-4" />
+
+        <MudTable T="RateLimitPolicyListItemDto"
+                  @ref="_table"
+                  ServerData="LoadPoliciesAsync"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true">
+            <HeaderContent>
+                <MudTh Class="text-center">#</MudTh>
+                <MudTh Class="text-center">PolicyName</MudTh>
+                <MudTh Class="text-center">ServiceName</MudTh>
+                <MudTh Class="text-center">EndpointPattern</MudTh>
+                <MudTh Class="text-center">State</MudTh>
+                <MudTh Class="text-center">Operation</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="#" Class="text-center">@context.Id</MudTd>
+                <MudTd DataLabel="PolicyName" Class="text-center">@context.PolicyName</MudTd>
+                <MudTd DataLabel="ServiceName" Class="text-start">@context.ServiceName</MudTd>
+                <MudTd DataLabel="EndpointPattern" Class="text-start" Style="direction:ltr;">@context.EndpointPattern</MudTd>
+                <MudTd DataLabel="State" Class="text-center">
+                    @if (context.IsActive)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactive</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Operation" Class="text-center">
+                    <MudTooltip Text="Edit Policy">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       OnClick="() => OpenEditDialogAsync(context)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete Policy">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Medium"
+                                       OnClick="@(() => ConfirmDeletePolicyAsync(context))" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>No records found</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>Loading ...</MudText>
+            </LoadingContent>
+        </MudTable>
+
+    </MudCardContent>
+    <MudDivider />
+    <MudCardActions>
+        <div class="d-flex w-100 justify-space-between align-center flex-wrap gap-4">
+            <div class="d-flex align-center flex-grow-1 flex-sm-grow-0 justify-start">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mud-text-secondary">
+                    @GetPaginationStatusMessage()
+                </MudText>
+            </div>
+
+            <div class="d-flex align-center justify-center flex-grow-1 flex-sm-grow-0" style="direction: ltr;">
+                <MudPagination Color="Color.Primary" ShowFirstButton="true" ShowLastButton="true"
+                               Selected="@(_currentPage + 1)"
+                               SelectedChanged="OnPaginationChanged"
+                               Count="@_totalPages"
+                               Class="mx-auto" />
+            </div>
+
+            <div class="d-flex align-center justify-end flex-grow-1 flex-sm-grow-0 gap-2">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Number of rows:</MudText>
+                <MudSelect T="int"
+                           Value="_pageSize"
+                           ValueChanged="OnPageSizeChanged"
+                           Margin="Margin.Dense"
+                           Variant="Variant.Outlined"
+                           Style="width: 100px; background-color: var(--mud-palette-background-grey);"
+                           Dense="true">
+                    @foreach (var item in _pageSizes)
+                    {
+                        <MudSelectItem Value="item">@item</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </div>
+
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private MudTable<RateLimitPolicyListItemDto>? _table;
+    private string _paginationRecords = string.Empty;
+    private int _totalItems = 0;
+    private int _currentPage = 0;
+    private int _pageSize = 10;
+    private int _totalPages = 0;
+    private readonly int[] _pageSizes = { 10, 15, 25, 50, 100 };
+    private string? _selectedSortOption = "updatedatedesc";
+
+    private sealed class SortOption
+    {
+        public string Value { get; init; } = string.Empty;
+        public string Text { get; init; } = string.Empty;
+    }
+
+    private readonly List<SortOption> _sortOptions = new()
+{
+    new SortOption { Value = "createdateasc", Text = "Created At - Asc" },
+    new SortOption { Value = "createdatedesc", Text = "Created At - Desc" },
+    new SortOption { Value = "updatedateasc", Text = "Updated At - Asc" },
+    new SortOption { Value = "updatedatedesc", Text = "Updated At - Desc" },
+    new SortOption { Value = "policynameasc", Text = "Policy Name - Asc" },
+    new SortOption { Value = "policynamedesc", Text = "Policy Name - Desc" },
+    new SortOption { Value = "servicenameasc", Text = "Service Name - Asc" },
+    new SortOption { Value = "servicenamedesc", Text = "Service Name - Desc" }
+};
+
+
+
+    private string? _filterPolicyName;
+    private string? _filterServiceName;
+    private string? _filterEndpointPattern;
+    private bool? _filterIsActive;
+    private SortDirectionDto _sortDirection = SortDirectionDto.Desc;
+    private string? _sortBy = "updatedate";
+
+    private DateTime? _filterCreatedAtFrom;
+    private DateTime? _filterCreatedAtTo;
+    private DateTime? _filterUpdatedAtFrom;
+    private DateTime? _filterUpdatedAtTo;
+
+    private async Task<TableData<RateLimitPolicyListItemDto>> LoadPoliciesAsync(TableState tableState, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new RateLimitPolicyListRequestDto
+            {
+                PageNumber = _currentPage + 1,
+                PageSize = _pageSize,
+
+                PolicyName = NormalizeFilter(_filterPolicyName),
+                ServiceName = NormalizeFilter(_filterServiceName),
+                EndpointPattern = NormalizeFilter(_filterEndpointPattern),
+                IsActive = _filterIsActive,
+
+                CreatedAtFrom = ToStartOfDayOffset(_filterCreatedAtFrom),
+                CreatedAtTo = ToEndOfDayOffset(_filterCreatedAtTo),
+                UpdatedAtFrom = ToStartOfDayOffset(_filterUpdatedAtFrom),
+                UpdatedAtTo = ToEndOfDayOffset(_filterUpdatedAtTo),
+
+                SortBy = _sortBy,
+                SortDirection = _sortDirection
+            };
+
+            var data = await ApiClient.GetAllAsync(request, cancellationToken);
+
+            _totalItems = data.TotalItems;
+            _totalPages = data.TotalPages;
+            _paginationRecords = data.TotalItems == 0 ? "No records" : $"Show record {data.FromItem} to {data.ToItem} of {data.TotalItems}";
+
+            StateHasChanged();
+            return new TableData<RateLimitPolicyListItemDto>()
+            {
+                TotalItems = data.TotalItems,
+                Items = data.Items
+            };
+        }
+        catch (Exception)
+        {
+            _totalItems = 0;
+            _totalPages = 0;
+            _paginationRecords = string.Empty;
+            StateHasChanged();
+            return new TableData<RateLimitPolicyListItemDto>()
+            {
+                TotalItems = 0,
+                Items = Array.Empty<RateLimitPolicyListItemDto>()
+            };
+        }
+    }
+    private async Task OnPageSizeChanged(int newSize)
+    {
+        _pageSize = newSize;
+        _currentPage = 0;
+        if (_table is not null)
+            await _table.ReloadServerData();
+    }
+    private async Task OnPaginationChanged(int selectedPage)
+    {
+        _currentPage = selectedPage - 1;
+
+        if (_table is not null)
+            await _table.ReloadServerData();
+    }
+    private string GetPaginationStatusMessage() => _paginationRecords;
+    private void OnSortByChange(string value)
+    {
+        _selectedSortOption = value;
+
+        switch (value)
+        {
+            case "createdateasc":
+                _sortBy = "createdate";
+                _sortDirection = SortDirectionDto.Asc;
+                break;
+            case "createdatedesc":
+                _sortBy = "createdate";
+                _sortDirection = SortDirectionDto.Desc;
+                break;
+            case "updatedateasc":
+                _sortBy = "updatedate";
+                _sortDirection = SortDirectionDto.Asc;
+                break;
+            case "updatedatedesc":
+                _sortBy = "updatedate";
+                _sortDirection = SortDirectionDto.Desc;
+                break;
+            case "policynameasc":
+                _sortBy = "policyname";
+                _sortDirection = SortDirectionDto.Asc;
+                break;
+            case "policynamedesc":
+                _sortBy = "policyname";
+                _sortDirection = SortDirectionDto.Desc;
+                break;
+            case "servicenameasc":
+                _sortBy = "servicename";
+                _sortDirection = SortDirectionDto.Asc;
+                break;
+            case "servicenamedesc":
+                _sortBy = "servicename";
+                _sortDirection = SortDirectionDto.Desc;
+                break;
+        }
+
+
+    }
+    private async Task ApplySearchAsync()
+    {
+        _currentPage = 0;
+
+        if (_table is not null)
+            await _table.ReloadServerData();
+    }
+    private async Task ResetSearchAsync()
+    {
+        _filterPolicyName = null;
+        _filterServiceName = null;
+        _filterEndpointPattern = null;
+        _filterIsActive = null;
+
+        _filterCreatedAtFrom = null;
+        _filterCreatedAtTo = null;
+        _filterUpdatedAtFrom = null;
+        _filterUpdatedAtTo = null;
+
+        _selectedSortOption = "updatedatedesc";
+        _sortBy = "updatedate";
+        _sortDirection = SortDirectionDto.Desc;
+
+        _currentPage = 0;
+
+        if (_table is not null)
+            await _table.ReloadServerData();
+    }
+    private static string? NormalizeFilter(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
+    }
+    private static DateTimeOffset? ToStartOfDayOffset(DateTime? date)
+    {
+        if (!date.HasValue)
+            return null;
+
+        var startOfDay = date.Value.Date;
+
+        return new DateTimeOffset(startOfDay);
+    }
+    private static DateTimeOffset? ToEndOfDayOffset(DateTime? date)
+    {
+        if (!date.HasValue)
+            return null;
+
+        var endOfDay = date.Value.Date
+            .AddDays(1)
+            .AddTicks(-1);
+
+        return new DateTimeOffset(endOfDay);
+    }
+    private async Task OpenCreateDialogAsync()
+    {
+        var parameters = new DialogParameters<PolicyCreateOrUpdateDialog>
+        {
+            { x => x.Model, new RateLimitPolicyFormModel
+                {
+                    HttpMethodType = (byte)HttpMethodType.All,
+                    SubjectType = (byte)SubjectType.Global,
+                    SubjectKey = "*",
+                    WindowUnit = (byte)WindowUnit.Minute,
+                    AlgorithmType = (byte)AlgorithmType.FixedWindow,
+                    IsActive = true,
+                    Priority = 0
+                }
+            },
+            { x => x.IsEditMode, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<PolicyCreateOrUpdateDialog>("Create Policy", parameters,
+            new DialogOptions
+            {
+                CloseButton = true,
+                FullWidth = true,
+                MaxWidth = MaxWidth.Large
+            });
+
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            await _table!.ReloadServerData();
+            Snackbar.Add("Policy created successfully.", Severity.Success);
+        }
+    }
+    private async Task OpenEditDialogAsync(RateLimitPolicyListItemDto item)
+    {
+        var details = await ApiClient.GetByIdAsync(item.Id, CancellationToken.None);
+        if (details is null)
+        {
+            Snackbar.Add("Policy not found.", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<PolicyCreateOrUpdateDialog>
+        {
+            {
+                x => x.Model, new RateLimitPolicyFormModel
+                {
+                    Id = details.Id,
+                    PolicyName = details.PolicyName,
+                    ServiceName = details.ServiceName,
+                    HttpMethodType = details.HttpMethodType,
+                    EndpointPattern = details.EndpointPattern,
+                    SubjectType = details.SubjectType,
+                    SubjectKey = details.SubjectKey,
+                    LimitCount = details.LimitCount,
+                    WindowSize = details.WindowSize,
+                    WindowUnit = details.WindowUnit,
+                    AlgorithmType = details.AlgorithmType,
+                    Priority = details.Priority,
+                    EffectiveFrom = details.EffectiveFrom,
+                    EffectiveTo = details.EffectiveTo,
+                    IsActive = details.IsActive,
+                    Notes = details.Notes
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<PolicyCreateOrUpdateDialog>(
+            "Edit Policy",
+            parameters,
+            new DialogOptions
+            {
+                CloseButton = true,
+                FullWidth = true,
+                MaxWidth = MaxWidth.Large
+            });
+
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            await _table!.ReloadServerData();
+            Snackbar.Add("Policy updated successfully.", Severity.Success);
+        }
+    }
+    private async Task ConfirmDeletePolicyAsync(RateLimitPolicyListItemDto policy)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Policy"] = policy
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<DeletePolicyDialog>(
+            "Delete Policy",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result == null || result.Canceled)
+            return;
+
+        await DeletePolicyAsync(policy);
+    }
+    private async Task DeletePolicyAsync(RateLimitPolicyListItemDto policy)
+    {
+        try
+        {
+            await ApiClient.DeleteAsync(policy.Id);
+
+            Snackbar.Add("Policy deleted successfully.", Severity.Success);
+
+            if (_table is not null)
+                await _table.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

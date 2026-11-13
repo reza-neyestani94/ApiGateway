@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Apps/">
+    <Project Path="src/Apps/ApiGateway.Admin.Client/ApiGateway.Admin.Client.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/ApiGateway.Shared.Contracts/ApiGateway.Shared.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/ApiGateway.Shared.Domain/ApiGateway.Shared.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Features/" />
+  <Folder Name="/src/Features/HeaderManagement/">
+    <Project Path="src/Features/HeaderManagement/ApiGateway.HeaderManagement.Admin.Api/ApiGateway.HeaderManagement.Admin.Api.csproj" />
+    <Project Path="src/Features/HeaderManagement/ApiGateway.HeaderManagement.Sync/ApiGateway.HeaderManagement.Sync.csproj" />
+  </Folder>
+  <Folder Name="/src/Features/RateLimiting/">
+    <Project Path="src/Features/RateLimiting/ApiGateway.RateLimiting.Admin.Api/ApiGateway.RateLimiting.Admin.Api.csproj" />
+    <Project Path="src/Features/RateLimiting/ApiGateway.RateLimiting.Core/ApiGateway.RateLimiting.Core.csproj" />
+    <Project Path="src/Features/RateLimiting/ApiGateway.RateLimiting.Persistence/ApiGateway.RateLimiting.Persistence.csproj" />
+    <Project Path="src/Features/RateLimiting/ApiGateway.RateLimiting.Sync/ApiGateway.RateLimiting.Sync.csproj" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/ApiGateway.Runtime/ApiGateway.Runtime.csproj" />
+  </Folder>
+</Solution>

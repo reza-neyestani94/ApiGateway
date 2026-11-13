@@ -1,0 +1,24 @@
+﻿<MudDrawer Open="Open"
+           OpenChanged="OpenChanged"
+           Anchor="Anchor.Start"
+           Variant="DrawerVariant.Responsive"
+           Elevation="1"
+           ClipMode="DrawerClipMode.Always">
+    <MudNavMenu>
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Primary">
+            Dashboard
+        </MudNavLink>
+        <MudNavGroup Title="Policy Management" Expanded="false" Icon="@Icons.Material.Filled.Policy" IconColor="Color.Error">
+            <MudNavLink Icon="fas fa-security" IconColor="Color.Success" Href="/Policies">Policies</MudNavLink>
+            <MudNavLink Icon="fa-solid fa-user" IconColor="Color.Success" Href="/Deleted-Policies">Deleted Policies</MudNavLink>
+        </MudNavGroup>
+    </MudNavMenu>
+</MudDrawer>
+
+@code {
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OpenChanged { get; set; }
+}
